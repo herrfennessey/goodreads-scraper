@@ -29,7 +29,10 @@ class UserIdSpider(scrapy.Spider):
         else:
             for site_link in sitemap:
                 url = site_link['loc']
-                yield self.parse_user_profile(url)
+                if url.startswith("https://www.goodreads.com/user/show/"):
+                    yield self.parse_user_profile(url)
+                else:
+                    pass
 
     @staticmethod
     def parse_user_profile(url):

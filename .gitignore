@@ -9,5 +9,9 @@
 *.csv
 *.json
 
+# Ignore PyCharm generated files and indices
+.idea
+
 # Ignore virtualenv
 gscraper
+venv

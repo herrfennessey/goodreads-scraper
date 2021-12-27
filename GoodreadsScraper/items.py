@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import datetime
 # Define here the models for your scraped items
 #
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/items.html
 import re
-import datetime
 
 import scrapy
+from dateutil.parser import parse as dateutil_parse
 from scrapy import Field
 from scrapy.loader import ItemLoader
-
 from scrapy.loader.processors import Identity, Compose, MapCompose, TakeFirst, Join
-
-from dateutil.parser import parse as dateutil_parse
 from w3lib.html import remove_tags
 
 

@@ -4,6 +4,7 @@ import scrapy
 
 from ..items import AuthorItem, AuthorLoader
 
+
 class AuthorSpider(scrapy.Spider):
     name = "author"
 

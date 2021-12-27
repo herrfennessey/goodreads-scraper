@@ -5,6 +5,7 @@ import scrapy
 from .author_spider import AuthorSpider
 from ..items import BookItem, BookLoader
 
+
 class BookSpider(scrapy.Spider):
     """Extract information from a /book/show type page on Goodreads"""
     name = "book"

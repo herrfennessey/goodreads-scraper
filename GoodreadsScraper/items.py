@@ -60,8 +60,8 @@ def extract_ratings(txt):
     if not rating_code:
         return None
     rating_code = rating_code[0]
-    rating_array = rating_code[rating_code.index("[") + 1 : rating_code.index("]")]
-    ratings = {5 - i:int(x) for i, x in enumerate(rating_array.split(","))}
+    rating_array = rating_code[rating_code.index("[") + 1: rating_code.index("]")]
+    ratings = {5 - i: int(x) for i, x in enumerate(rating_array.split(","))}
     return ratings
 
 
@@ -124,6 +124,10 @@ class BookItem(scrapy.Item):
 
 class BookLoader(ItemLoader):
     default_output_processor = TakeFirst()
+
+
+class UserProfileItem(scrapy.Item):
+    profile_url = Field()
 
 
 class AuthorItem(scrapy.Item):

@@ -4,41 +4,85 @@ import re
 
 import scrapy
 from scrapy import Request
-from scrapy.http import XmlResponse
-from scrapy.spiders.sitemap import iterloc
-from scrapy.utils.gz import gzip_magic_number, gunzip
-from scrapy.utils.sitemap import Sitemap
 
-from GoodreadsScraper.items import UserProfileItem
+from GoodreadsScraper.items import UserReviewLoader, UserReviewItem
 
 logger = logging.getLogger(__name__)
 USER_ID_NAME_EXTRACTOR = re.compile(".*/user/show/(.*$)")
+USER_ID_EXTRACTOR = re.compile(".*review/list/(.*)\?")
+# For whatever reason, goodreads refuses to give scrapy more than 30 results per page to scrapers
+ITEMS_PER_PAGE = 30
 
 
 class UserReviewsSpider(scrapy.Spider):
     name = "user_reviews"
+    start_urls = [
+        "https://www.goodreads.com/user/show/3114744-david-basile",
+        "https://www.goodreads.com/user/show/10551948-david-vandyke",
+        "https://www.goodreads.com/user/show/326912-david-van-den-bossche",
+        "https://www.goodreads.com/user/show/21512610-titus-david"
+    ]
 
-    def __init__(self, url_list=[]):
-        super().__init__()
-        url_list = [
-            "https://www.goodreads.com/user/show/3114744-david-basile",
-            "https://www.goodreads.com/user/show/10551948-david-vandyke",
-            "https://www.goodreads.com/user/show/326912-david-van-den-bossche",
-            "https://www.goodreads.com/user/show/21512610-titus-david"
-        ]
-        self.start_urls = self.convert_profiles_to_reviews_pages(url_list)
+    def start_requests(self):
+        for url in self.start_urls:
+            user_id = self.extract_username_from_url(url)
+            converted_url = self.format_review_url(user_id, 1)
+            yield Request(converted_url, callback=self.parse, dont_filter=True, meta={"user_id": user_id, "page": 1})
 
     def parse(self, response):
-        a = 5
+        user_id = response.meta.get("user_id")
+        review_blocks = response.xpath('//tr[@class="bookalike review"]')
+
+        reviews_yielded = 0
+        # When you scrape goodreads for whatever reason they put on infinite scroll, which causes them to return
+        # unpredictable numbers of reviews, and might cause problems when you paginate
+        for review_block in review_blocks[:ITEMS_PER_PAGE]:
+            goodreads_rating = review_block.xpath(
+                'td[@class="field rating"]//div[@class="value"]//span[@class=" staticStars notranslate"]/@title').get()
+            user_rating = self.convert_goodreads_ratings_to_star_count(goodreads_rating)
+            if goodreads_rating and user_rating > 0:
+                reviews_yielded += 1
+                yield self.build_review(review_block, user_id, user_rating)
+
+        if reviews_yielded == ITEMS_PER_PAGE:
+            new_page_count = response.meta.get("page") + 1
+            formatted_url = self.format_review_url(user_id, new_page_count)
+            yield Request(formatted_url, callback=self.parse, dont_filter=True,
+                          meta={"user_id": user_id, "page": new_page_count})
 
     @staticmethod
-    def convert_profiles_to_reviews_pages(urls):
-        ids = []
-        for url in urls:
-            user_ids_and_names = re.findall(USER_ID_NAME_EXTRACTOR, url)
-            if len(user_ids_and_names) > 0:
-                ids.append(user_ids_and_names[0])
-            else:
-                logger.info(f"Could not parse user profile at url {url}")
+    def convert_goodreads_ratings_to_star_count(goodreads_rating):
+        ratings_dict = {
+            "it was amazing": 5,
+            "really liked it": 4,
+            "liked it": 3,
+            "it was ok": 2,
+            "did not like it": 1,
+        }
+        return ratings_dict.get(goodreads_rating)
 
-        return [f"https://www.goodreads.com/review/list/{user_id}?shelf=read" for user_id in ids]
+    @staticmethod
+    def build_review(review_block, user_id, user_rating):
+        loader = UserReviewLoader(UserReviewItem(), review_block)
+        loader.add_value('user_id', user_id)
+
+        loader.add_xpath('book_link', 'td[@class="field title"]//a/@href')
+        loader.add_xpath('book_name', 'td[@class="field title"]//a/@title')
+
+        loader.add_xpath('author_link', 'td[@class="field author"]//a/@href')
+        loader.add_xpath('author_name', 'td[@class="field author"]//a/text()')
+
+        loader.add_xpath('date_read', 'td[@class="field date_read"]//div[@class="value"]//div//div//span/text()')
+        loader.add_xpath('date_added', 'td[@class="field date_added"]//div[@class="value"]//span/@title')
+
+        loader.add_value('user_rating', user_rating)
+        return loader.load_item()
+
+    @staticmethod
+    def format_review_url(user_id_and_name, page):
+        return f"https://www.goodreads.com/review/list/{user_id_and_name}?shelf=read&sort=rating&page={page}&per_page={ITEMS_PER_PAGE}"
+
+    @staticmethod
+    def extract_username_from_url(url):
+        username = re.findall(USER_ID_NAME_EXTRACTOR, url)
+        return username[0] if username else None

@@ -156,3 +156,22 @@ class AuthorItem(scrapy.Item):
 
 class AuthorLoader(ItemLoader):
     default_output_processor = TakeFirst()
+
+
+class UserReviewItem(scrapy.Item):
+    user_id = Field()
+
+    book_link = Field()
+    book_name = Field()
+
+    author_link = Field()
+    author_name = Field()
+
+    date_read = Field(input_processor=MapCompose(safe_parse_date))
+    date_added = Field(input_processor=MapCompose(safe_parse_date))
+
+    user_rating = Field(serializer=int)
+
+
+class UserReviewLoader(ItemLoader):
+    default_output_processor = TakeFirst()

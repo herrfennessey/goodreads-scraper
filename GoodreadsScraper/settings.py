@@ -16,7 +16,7 @@ NEWSPIDER_MODULE = 'GoodreadsScraper.spiders'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'GoodreadsScraper (+http://www.yourdomain.com)'
+USER_AGENT = 'Scrapy 2.0.1 (+https://github.com/herrfennessey/goodreads-scraper)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True

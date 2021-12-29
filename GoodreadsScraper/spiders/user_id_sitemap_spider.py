@@ -11,11 +11,10 @@ from scrapy.utils.sitemap import Sitemap
 from GoodreadsScraper.items import UserProfileItem
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
-class UserIdSpider(scrapy.Spider):
-    name = "user_id"
+class UserIdSitemapSpider(scrapy.Spider):
+    name = "user_id_sitemap"
     start_urls = (
         'https://www.goodreads.com/siteindex.user.xml',
     )

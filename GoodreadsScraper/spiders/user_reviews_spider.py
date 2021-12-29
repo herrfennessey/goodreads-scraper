@@ -5,7 +5,7 @@ import re
 import scrapy
 from scrapy import Request
 
-from GoodreadsScraper.items import UserReviewLoader, UserReviewItem
+from ..items import UserReviewLoader, UserReviewItem
 
 logger = logging.getLogger(__name__)
 USER_ID_NAME_EXTRACTOR = re.compile(".*/user/show/(.*$)")

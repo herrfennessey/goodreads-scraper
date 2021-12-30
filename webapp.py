@@ -1,4 +1,5 @@
 # server.py
+import json
 import os
 import subprocess
 import uuid
@@ -31,13 +32,13 @@ def scrape_user_profiles(body: UserScrapeRequest):
     try:
         subprocess.check_output(
             ['scrapy', 'crawl', "user_reviews", "-o", output_file, "-a", f"profiles={comma_delimited_profiles}"])
-        with open(output_file) as items_file:
-            response = items_file.read()
+        with open(output_file) as results:
+            response = json.load(results)
     except Exception as e:
         app.logger.info(f"Encountered exception: {e}, skipping")
     finally:
         os.remove(output_file)
-        return jsonify(response)
+        return {"response": response}
 
 
 if __name__ == '__main__':

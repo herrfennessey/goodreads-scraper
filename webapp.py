@@ -19,7 +19,6 @@ class UserScrapeRequest(BaseModel):
 @app.route('/scrape-users', methods=['POST'])
 @validate()
 def scrape_user_profiles(body: UserScrapeRequest):
-    request_data = request.get_json()
     comma_delimited_profiles = ",".join(body.profiles)
     app.logger.info(f"Processing user batch: {body.profiles}")
 

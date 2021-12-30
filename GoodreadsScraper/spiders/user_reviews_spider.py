@@ -16,12 +16,10 @@ ITEMS_PER_PAGE = 30
 
 class UserReviewsSpider(scrapy.Spider):
     name = "user_reviews"
-    start_urls = [
-        "https://www.goodreads.com/user/show/3114744-david-basile",
-        "https://www.goodreads.com/user/show/10551948-david-vandyke",
-        "https://www.goodreads.com/user/show/326912-david-van-den-bossche",
-        "https://www.goodreads.com/user/show/21512610-titus-david"
-    ]
+
+    def __init__(self, profiles):
+        super().__init__()
+        self.start_urls = profiles.split(",")
 
     def start_requests(self):
         for url in self.start_urls:

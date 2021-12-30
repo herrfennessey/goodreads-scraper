@@ -10,7 +10,7 @@
 
 A small Python project to pull data from Goodreads using Scrapy and Selenium
 
-## Table of Contents
+## Table of Contents 
 
 1. [Introduction](#introduction)
 1. [Installation](#installation)

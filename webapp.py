@@ -1,20 +1,21 @@
-# server.py
 import json
 import os
 import subprocess
 import uuid
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 from flask_pydantic import validate
-from pydantic import BaseModel
+from google.cloud import bigquery
+from pydantic import BaseModel, parse_obj_as
+
+from dao.big_query_dao import BigQueryDao
+from models.user_review_bigquery_dto import UserReviewBigQueryDto
+from models.user_scrape_request import UserScrapeRequest
 
 app = Flask(__name__)
-
-
-class UserScrapeRequest(BaseModel):
-    profiles: List[str]
-
+bq = BigQueryDao()
 
 @app.route('/scrape-users', methods=['POST'])
 @validate()
@@ -27,17 +28,22 @@ def scrape_user_profiles(body: UserScrapeRequest):
     # desired requests per second. If you wanted to purely solve this in python, ou could use semaphores or uwsgi
     # to limit concurrency
     output_file = f"{uuid.uuid4()}.json"
-    response = "{}"
+    response = dict()
     try:
         subprocess.check_output(
             ['scrapy', 'crawl', "user_reviews", "-o", output_file, "-a", f"profiles={comma_delimited_profiles}"])
         with open(output_file) as results:
-            response = json.load(results)
+            result_json_list = json.load(results)
+            if body.debug:
+                response["debug"] = result_json_list
+            else:
+                user_review_list = parse_obj_as(List[UserReviewBigQueryDto], result_json_list)
+                bq.write(user_review_list)
     except Exception as e:
-        app.logger.info(f"Encountered exception: {e}, skipping")
+        app.logger.info(f"Encountered exception: {e}")
     finally:
         os.remove(output_file)
-        return {"response": response}
+        return jsonify(response)
 
 
 if __name__ == '__main__':

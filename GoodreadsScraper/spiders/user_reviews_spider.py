@@ -62,7 +62,8 @@ class UserReviewsSpider(scrapy.Spider):
     @staticmethod
     def build_review(review_block, user_id, user_rating):
         loader = UserReviewLoader(UserReviewItem(), review_block)
-        loader.add_value('user_id', user_id)
+        loader.add_value('user_id', user_id.split('-')[0])
+        loader.add_value('user_id_slug', user_id)
 
         loader.add_xpath('book_link', 'td[@class="field title"]//a/@href')
         loader.add_xpath('book_name', 'td[@class="field title"]//a/@title')

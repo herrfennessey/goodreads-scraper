@@ -160,6 +160,7 @@ class AuthorLoader(ItemLoader):
 
 class UserReviewItem(scrapy.Item):
     user_id = Field()
+    user_id_slug = Field()
 
     book_link = Field()
     book_name = Field()

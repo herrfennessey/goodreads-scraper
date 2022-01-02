@@ -17,7 +17,7 @@ GOODREADS_URL_PREFIX = "https://www.goodreads.com"
 
 class UserIdNetworkSpider(scrapy.Spider):
     name = "user_id_network"
-    custom_settings = {'CLOSESPIDER_ITEMCOUNT': 100,
+    custom_settings = {'CLOSESPIDER_ITEMCOUNT': 100_000,
                        'ITEM_PIPELINES': {'GoodreadsScraper.pipelines.GcpTaskQueuePipeline': 400}}
     start_urls = [
         'https://www.goodreads.com/user/show/24697113-david-fennessey',

@@ -17,6 +17,7 @@ from models.user_scrape_request import UserScrapeRequest
 app = Flask(__name__)
 bq = BigQueryDao()
 
+
 @app.route('/scrape-users', methods=['POST'])
 @validate()
 def scrape_user_profiles(body: UserScrapeRequest):
@@ -44,6 +45,11 @@ def scrape_user_profiles(body: UserScrapeRequest):
     finally:
         os.remove(output_file)
         return jsonify(response)
+
+
+@app.route('/', methods=['GET'])
+def hello_world():
+    return jsonify({"hello": "world"})
 
 
 if __name__ == '__main__':

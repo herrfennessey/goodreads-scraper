@@ -58,7 +58,7 @@ class GcpTaskQueuePipeline(object):
 
     def __init__(self, crawler):
         self.pipeline_name = "profile-scrape-queue"
-        self.http_target = "https://user-review-scraper-pool-tmzffqb3oq-ew.a.run.app/scrape-users"
+        self.http_target = "https://user-review-scraper-pool-tmzffqb3oq-ue.a.run.app/scrape-users"
         self.client = None
         self.parent = None
         self.item_list: List[UserProfileItem] = []

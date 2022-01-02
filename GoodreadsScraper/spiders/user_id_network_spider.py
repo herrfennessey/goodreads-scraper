@@ -11,7 +11,7 @@ from GoodreadsScraper.items import UserProfileItem
 logger = logging.getLogger(__name__)
 
 BOOK_REGEX = re.compile(r".*\b(\d+)\sbooks")
-BOOKS_FOLLOW_THRESHOLD = 100
+BOOKS_FOLLOW_THRESHOLD = 50
 GOODREADS_URL_PREFIX = "https://www.goodreads.com"
 
 

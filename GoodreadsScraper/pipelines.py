@@ -62,6 +62,7 @@ class GcpTaskQueuePipeline(object):
         self.client = None
         self.parent = None
         self.item_list: List[UserProfileItem] = []
+        self.number_of_profiles_per_crawl = 5
         crawler.signals.connect(self.spider_opened, signal=signals.spider_opened)
         crawler.signals.connect(self.spider_closed, signal=signals.spider_closed)
 
@@ -74,7 +75,7 @@ class GcpTaskQueuePipeline(object):
 
     def process_item(self, item, spider):
         self.item_list.append(item)
-        if len(self.item_list) >= 10:
+        if len(self.item_list) >= self.number_of_profiles_per_crawl:
             self.send_task()
 
     def send_task(self):
@@ -86,7 +87,7 @@ class GcpTaskQueuePipeline(object):
         }
         if len(self.item_list) > 0:
             user_profile_list = [item['profile_url'] for item in self.item_list]
-            # Convert dict to JSON string
+            # Convert list to JSON query
             payload = json.dumps({"profiles": user_profile_list})
             # specify http content-type to application/json
             task["http_request"]["headers"] = {"Content-type": "application/json"}
@@ -98,5 +99,5 @@ class GcpTaskQueuePipeline(object):
             task["http_request"]["body"] = converted_payload
 
             response = self.client.create_task(request={"parent": self.parent, "task": task})
-            print("Created task {}".format(response.name))
+            logger.info("Created task {}".format(response.name))
             self.item_list = []

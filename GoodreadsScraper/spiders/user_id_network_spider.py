@@ -14,9 +14,11 @@ BOOK_REGEX = re.compile(r".*\b(\d+)\sbooks")
 BOOKS_FOLLOW_THRESHOLD = 100
 GOODREADS_URL_PREFIX = "https://www.goodreads.com"
 
+
 class UserIdNetworkSpider(scrapy.Spider):
     name = "user_id_network"
-    custom_settings = {'CLOSESPIDER_ITEMCOUNT': 100}
+    custom_settings = {'CLOSESPIDER_ITEMCOUNT': 100,
+                       'ITEM_PIPELINES': {'GoodreadsScraper.pipelines.GcpTaskQueuePipeline': 400}}
     start_urls = [
         'https://www.goodreads.com/user/show/24697113-david-fennessey',
     ]
@@ -34,7 +36,6 @@ class UserIdNetworkSpider(scrapy.Spider):
             if friend_count > BOOKS_FOLLOW_THRESHOLD:
                 yield Request(friend_url, callback=self.parse)
 
-
     @staticmethod
     def extract_friend_count(selector_block):
         friend_count = 0
@@ -47,5 +48,3 @@ class UserIdNetworkSpider(scrapy.Spider):
     @staticmethod
     def parse_user_profile(url):
         return UserProfileItem({"profile_url": url})
-
-

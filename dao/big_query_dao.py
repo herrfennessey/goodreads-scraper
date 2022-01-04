@@ -12,6 +12,6 @@ class BigQueryDao(object):
     def write(self, rows_to_insert, table_name):
         errors = self.client.insert_rows_json(table_name, [dto.dict() for dto in rows_to_insert])
         if not errors:
-            logger.info(print(f"Successfully wrote {len(rows_to_insert)} rows to table_name!"))
+            logger.info(print(f"Successfully wrote {len(rows_to_insert)} rows to {table_name}!"))
         else:
-            logger.warning("Encountered errors while inserting rows: {}".format(errors))
+            logger.warning(f"Encountered errors while inserting rows: {errors}")

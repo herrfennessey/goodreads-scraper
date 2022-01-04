@@ -1,7 +1,6 @@
 import argparse
 import json
 import logging
-import sys
 
 from google.cloud import tasks_v2
 
@@ -34,7 +33,8 @@ class BookScrapeEnqueuer(object):
 
         for chunk in chunks(items, NUMBER_OF_BOOKS_PER_CRAWL):
             self.send_task(chunk)
-            sys.exit()
+
+        print("Done!")
 
     def send_task(self, book_chunk):
         task = {
@@ -55,7 +55,7 @@ class BookScrapeEnqueuer(object):
             task["http_request"]["body"] = converted_payload
 
             response = self.client.create_task(request={"parent": self.parent, "task": task})
-            logger.info("Created task {}".format(response.name))
+            print("Created task {}".format(response.name))
 
 
 if __name__ == "__main__":

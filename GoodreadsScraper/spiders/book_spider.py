@@ -17,9 +17,9 @@ class BookSpider(scrapy.Spider):
 
     def __init__(self, books=None):
         super().__init__()
-        # self.start_urls = books.split(",")
+        self.start_urls = books.split(",")
         # For debugging
-        self.start_urls = ["https://www.goodreads.com/book/show/5907.The_Hobbit_or_There_and_Back_Again"]
+        #self.start_urls = ["https://www.goodreads.com/book/show/5907.The_Hobbit_or_There_and_Back_Again"]
 
     def parse(self, response):
         loader = BookLoader(BookItem(), response=response)

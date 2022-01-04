@@ -5,6 +5,7 @@ import datetime
 #
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/items.html
+import json
 import re
 
 import scrapy
@@ -65,6 +66,10 @@ def extract_ratings(txt):
     return ratings
 
 
+def extract_ratings_as_json(txt):
+    return json.dumps(extract_ratings(txt))
+
+
 def filter_asin(asin):
     if asin and len(str(asin)) == 10:
         return asin
@@ -95,6 +100,7 @@ class BookItem(scrapy.Item):
 
     title = Field(input_processor=MapCompose(str.strip))
     author = Field(input_processor=MapCompose(str.strip))
+    author_url = Field(input_processor=MapCompose(str.strip))
 
     num_ratings = Field(input_processor=MapCompose(str.strip, int))
     num_reviews = Field(input_processor=MapCompose(str.strip, int))
@@ -113,13 +119,10 @@ class BookItem(scrapy.Item):
     series = Field()
 
     # Lists
-    awards = Field(output_processor=Identity())
-    places = Field(output_processor=Identity())
-    characters = Field(output_processor=Identity())
     genres = Field(output_processor=Compose(set, list))
 
     # Dicts
-    rating_histogram = Field(input_processor=MapCompose(extract_ratings))
+    rating_histogram = Field(input_processor=MapCompose(extract_ratings_as_json))
 
 
 class BookLoader(ItemLoader):

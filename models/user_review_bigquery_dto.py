@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+USER_REVIEWS_TABLE = "book-suggestion-please.user_reviews.user_reviews_v1"
+
 
 class UserReviewBigQueryDto(BaseModel):
     user_id: int

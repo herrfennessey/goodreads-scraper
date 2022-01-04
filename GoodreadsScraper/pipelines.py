@@ -4,7 +4,7 @@ import logging
 from typing import List
 
 from google.cloud import tasks_v2
-from scrapy import signals, Field
+from scrapy import signals
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting

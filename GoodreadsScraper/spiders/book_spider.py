@@ -1,8 +1,9 @@
 """Spider to extract information from a /book/show type page on Goodreads"""
 import re
+from urllib.parse import urlsplit
 
 import scrapy
-from urllib.parse import urlsplit
+from scrapy import Request
 
 from ..items import BookItem, BookLoader
 
@@ -15,11 +16,14 @@ class BookSpider(scrapy.Spider):
     """Extract information from a /book/show type page on Goodreads"""
     name = "book"
 
-    def __init__(self, books=None):
+    def __init__(self, books):
         super().__init__()
         self.start_urls = books.split(",")
-        # For debugging
-        #self.start_urls = ["https://www.goodreads.com/book/show/5907.The_Hobbit_or_There_and_Back_Again"]
+
+    def start_requests(self):
+        for url in self.start_urls:
+            converted_url = self.format_book_url(url)
+            yield Request(converted_url, callback=self.parse, dont_filter=True)
 
     def parse(self, response):
         loader = BookLoader(BookItem(), response=response)
@@ -60,3 +64,7 @@ class BookSpider(scrapy.Spider):
         loader.add_css('rating_histogram', 'script[type*="protovis"]::text')
 
         return loader.load_item()
+
+    @staticmethod
+    def format_book_url(user_id_and_name):
+        return f"https://www.goodreads.com{user_id_and_name}"

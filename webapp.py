@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import subprocess
 import uuid
@@ -15,8 +16,8 @@ from models.user_review_bigquery_dto import UserReviewBigQueryDto, USER_REVIEWS_
 from models.user_scrape_request import UserScrapeRequest
 
 app = Flask(__name__)
-bq = BigQueryDao()
-
+app.logger.setLevel(logging.INFO)
+bq = BigQueryDao(app.logger)
 
 @app.route('/scrape-users', methods=['POST'])
 @validate()

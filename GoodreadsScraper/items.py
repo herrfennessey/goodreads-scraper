@@ -74,7 +74,7 @@ def extract_legacy_ratings_as_json(txt):
 
 def extract_ratings_as_json(rating_list):
     rating_dict = {idx + 1: rating for idx, rating in enumerate(rating_list)}
-    return json.dumps(extract_legacy_ratings(rating_dict))
+    return json.dumps(rating_dict)
 
 
 def filter_asin(asin):
@@ -106,13 +106,15 @@ def extract_language(txt):
 
 
 def convert_epoch_to_timestamp(epoch):
-    time_object = datetime.datetime.fromtimestamp(epoch)
-    return time_object.strftime(TIME_FORMAT)
+    epoch_seconds = epoch / 1000
+    time_object = datetime.datetime.fromtimestamp(epoch_seconds)
+    return time_object.date().strftime(TIME_FORMAT)
 
 
 def extract_year_from_timestamp(epoch):
-    time_object = datetime.datetime.fromtimestamp(epoch)
-    return time_object.getYear()
+    epoch_seconds = epoch / 1000
+    time_object = datetime.datetime.fromtimestamp(epoch_seconds)
+    return time_object.year
 
 
 class LegacyBookItem(scrapy.Item):
@@ -146,7 +148,7 @@ class LegacyBookItem(scrapy.Item):
     rating_histogram = Field(input_processor=MapCompose(extract_legacy_ratings_as_json))
 
 
-class LegacyBookLoader(ItemLoader):
+class BookLoader(ItemLoader):
     default_output_processor = TakeFirst()
 
 
@@ -164,7 +166,7 @@ class BookItem(scrapy.Item):
     num_pages = Field()
 
     language = Field(input_processor=MapCompose(extract_language))
-    publish_date = Field(input_processor=convert_epoch_to_timestamp)
+    publish_date = Field(input_processor=MapCompose(convert_epoch_to_timestamp))
 
     original_publish_year = Field(input_processor=MapCompose(extract_year_from_timestamp, int))
 
@@ -178,7 +180,7 @@ class BookItem(scrapy.Item):
     genres = Field(output_processor=Compose(set, list))
 
     # Dicts
-    rating_histogram = Field(input_processor=MapCompose(extract_ratings_as_json))
+    rating_histogram = Field(input_processor=extract_ratings_as_json)
 
 
 class UserProfileItem(scrapy.Item):

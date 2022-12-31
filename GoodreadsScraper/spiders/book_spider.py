@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 import scrapy
 from scrapy import Request
 
-from ..items import LegacyBookItem, LegacyBookLoader, BookItem
+from ..items import LegacyBookItem, BookLoader, BookItem
 
 TYPENAME = "__typename"
 
@@ -19,7 +19,7 @@ class BookSpider(scrapy.Spider):
     """Extract information from a /book/show type page on Goodreads"""
     name = "book"
 
-    def __init__(self, books):
+    def __init__(self, books="/book/show/4671.The_Great_Gatsby"):
         super().__init__()
         self.start_urls = books.split(",")
 
@@ -31,12 +31,14 @@ class BookSpider(scrapy.Spider):
     def parse(self, response):
         if response.selector.attrib.get('class', "").startswith("desktop withSiteHeaderTopFullImage"):
             self.logger.info("Legacy response")
-            self.parse_legacy_book(response)
+            return self.parse_legacy_book(response)
         else:
             self.logger.info("New Book Response")
-            self.parse_book(response)
+            return self.parse_book(response)
 
     def parse_book(self, response):
+        loader = BookLoader(BookItem(), response=response)
+
         text_body = response.xpath('//*[@id="__NEXT_DATA__"]/text()').get()
         parsed_json_body = json.loads(text_body)
         book_info = parsed_json_body['props']['pageProps']['apolloState']
@@ -46,28 +48,28 @@ class BookSpider(scrapy.Spider):
         work = self._take_largest_element(book_info, "Work")
         book = self._take_largest_element(book_info, "Book")
 
-        return BookItem(
-            book_url=work.get("details").get("webUrl"),
-            title=book.get("title"),
-            author=contributor.get("name"),
-            author_url=contributor.get("webUrl"),
-            num_ratings=work.get("stats").get("ratingsCount"),
-            num_reviews=work.get("stats").get("textReviewsCount"),
-            avg_rating=work.get("stats").get("averageRating"),
-            num_pages=book.get("details").get("numPages", 150),
-            language=book.get("details").get("language").get("name"),
-            publish_date=book.get("details").get("publicationTime"),
-            original_publish_year=work.get("details").get("publicationTime"),
-            isbn=book.get("details").get("isbn"),
-            isbn13=book.get("details").get("isbn13"),
-            asin=book.get("details").get("asin"),
-            series=series.get("title"),
-            genres=self._parse_genres(book.get("book_genres")),
-            ratings_histogram=work.get("stats").get("ratingsCountDist")
-        )
+        loader.add_value('url', urlsplit(response.request.url).path)
+        loader.add_value('title', book.get("title"))
+        loader.add_value('author', contributor.get("name"))
+        loader.add_value('author_url', contributor.get("webUrl"))
+        loader.add_value('num_ratings', work.get("stats").get("ratingsCount"))
+        loader.add_value('num_reviews', work.get("stats").get("textReviewsCount"))
+        loader.add_value('avg_rating', work.get("stats").get("averageRating"))
+        loader.add_value('num_pages', book.get("details").get("numPages"))
+        loader.add_value('language', book.get("details").get("language").get("name"))
+        loader.add_value('publish_date', book.get("details").get("publicationTime"))
+        loader.add_value('original_publish_year', work.get("details").get("publicationTime"))
+        loader.add_value('isbn', book.get("details").get("isbn"))
+        loader.add_value('isbn13', book.get("details").get("isbn13"))
+        loader.add_value('asin', book.get("details").get("asin"))
+        loader.add_value('series', series.get("title") if series else "")
+        loader.add_value('genres', self._parse_genres(book.get("bookGenres")))
+        loader.add_value('rating_histogram', work.get("stats").get("ratingsCountDist"))
+
+        return loader.load_item()
 
     def parse_legacy_book(self, response):
-        loader = LegacyBookLoader(LegacyBookItem(), response=response)
+        loader = BookLoader(LegacyBookItem(), response=response)
 
         # I use relative paths because that's what's in the reviews
         loader.add_value('url', urlsplit(response.request.url).path)

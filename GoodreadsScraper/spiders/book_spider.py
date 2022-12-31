@@ -1,11 +1,14 @@
 """Spider to extract information from a /book/show type page on Goodreads"""
+import json
 import re
 from urllib.parse import urlsplit
 
 import scrapy
 from scrapy import Request
 
-from ..items import BookItem, BookLoader
+from ..items import LegacyBookItem, BookLoader, BookItem
+
+TYPENAME = "__typename"
 
 SIMILAR_EDITIONS_ISBN_REGEX = re.compile(r"editionInfo\\'>\\nisbn:\s(\d+)\\n<\\")
 SIMILAR_EDITIONS_ISBN_13_REGEX = re.compile(r"editionInfo\\'>\\nisbn13:\s(\d+)\\n<\\")
@@ -16,17 +19,57 @@ class BookSpider(scrapy.Spider):
     """Extract information from a /book/show type page on Goodreads"""
     name = "book"
 
-    def __init__(self, books):
+    def __init__(self, books="/book/show/4671.The_Great_Gatsby"):
         super().__init__()
         self.start_urls = books.split(",")
 
     def start_requests(self):
         for url in self.start_urls:
-            converted_url = self.format_book_url(url)
+            converted_url = self._format_book_url(url)
             yield Request(converted_url, callback=self.parse, dont_filter=True)
 
     def parse(self, response):
+        if response.selector.attrib.get('class', "").startswith("desktop withSiteHeaderTopFullImage"):
+            self.logger.info("Legacy response")
+            return self.parse_legacy_book(response)
+        else:
+            self.logger.info("New Book Response")
+            return self.parse_book(response)
+
+    def parse_book(self, response):
         loader = BookLoader(BookItem(), response=response)
+
+        text_body = response.xpath('//*[@id="__NEXT_DATA__"]/text()').get()
+        parsed_json_body = json.loads(text_body)
+        book_info = parsed_json_body['props']['pageProps']['apolloState']
+
+        contributor = self._take_largest_element(book_info, "Contributor")
+        series = self._take_first_element(book_info, "Series")
+        work = self._take_largest_element(book_info, "Work")
+        book = self._take_largest_element(book_info, "Book")
+
+        loader.add_value('url', urlsplit(response.request.url).path)
+        loader.add_value('title', book.get("title"))
+        loader.add_value('author', contributor.get("name"))
+        loader.add_value('author_url', contributor.get("webUrl"))
+        loader.add_value('num_ratings', work.get("stats").get("ratingsCount"))
+        loader.add_value('num_reviews', work.get("stats").get("textReviewsCount"))
+        loader.add_value('avg_rating', work.get("stats").get("averageRating"))
+        loader.add_value('num_pages', book.get("details").get("numPages"))
+        loader.add_value('language', book.get("details").get("language").get("name"))
+        loader.add_value('publish_date', book.get("details").get("publicationTime"))
+        loader.add_value('original_publish_year', work.get("details").get("publicationTime"))
+        loader.add_value('isbn', book.get("details").get("isbn"))
+        loader.add_value('isbn13', book.get("details").get("isbn13"))
+        loader.add_value('asin', book.get("details").get("asin"))
+        loader.add_value('series', series.get("title") if series else "")
+        loader.add_value('genres', self._parse_genres(book.get("bookGenres")))
+        loader.add_value('rating_histogram', work.get("stats").get("ratingsCountDist"))
+
+        return loader.load_item()
+
+    def parse_legacy_book(self, response):
+        loader = BookLoader(LegacyBookItem(), response=response)
 
         # I use relative paths because that's what's in the reviews
         loader.add_value('url', urlsplit(response.request.url).path)
@@ -65,6 +108,44 @@ class BookSpider(scrapy.Spider):
 
         return loader.load_item()
 
+    def _take_largest_element(self, input_dict, element_type):
+        largest = None
+        for block in input_dict.values():
+            if block.get(TYPENAME, "") == element_type:
+                if largest is None:
+                    largest = block
+                else:
+                    key_count = self._count_keys_recursive(block)
+                    largest_count = self._count_keys_recursive(largest)
+                    if key_count > largest_count:
+                        largest = block
+            else:
+                continue
+        return largest
+
+    def _parse_genres(self, genre_input_list):
+        parsed_genres = []
+        for genre in genre_input_list:
+            if genre.get(TYPENAME) == "BookGenre":
+                genre_dict = genre.get("genre")
+                if genre_dict.get(TYPENAME) == "Genre":
+                    parsed_genres.append(genre_dict.get("name"))
+        return parsed_genres
+
+    def _take_first_element(self, input_dict, element_type):
+        for block in input_dict.values():
+            if block.get(TYPENAME, "") == element_type:
+                return block
+
+    def _count_keys_recursive(self, input_dict, counter=0):
+        for each_key in input_dict:
+            if isinstance(input_dict[each_key], dict):
+                # Recursive call
+                counter = self._count_keys_recursive(input_dict[each_key], counter + 1)
+            else:
+                counter += 1
+        return counter
+
     @staticmethod
-    def format_book_url(user_id_and_name):
+    def _format_book_url(user_id_and_name):
         return f"https://www.goodreads.com{user_id_and_name}"

@@ -19,7 +19,7 @@ class BookSpider(scrapy.Spider):
     """Extract information from a /book/show type page on Goodreads"""
     name = "book"
 
-    def __init__(self, books="/book/show/4671.The_Great_Gatsby"):
+    def __init__(self, books="/book/show/12232938-the-lovely-bones"):
         super().__init__()
         self.start_urls = books.split(",")
 
@@ -48,7 +48,14 @@ class BookSpider(scrapy.Spider):
         work = self._take_largest_element(book_info, "Work")
         book = self._take_largest_element(book_info, "Book")
 
-        loader.add_value('url', urlsplit(response.request.url).path)
+        url = urlsplit(response.request.url).path
+
+        if not book:
+            self.logger.warning("Unable to load body, reloading page!")
+            converted_url = self._format_book_url(url)
+            return Request(converted_url, callback=self.parse, dont_filter=True)
+
+        loader.add_value('url', url)
         loader.add_value('title', book.get("title"))
         loader.add_value('author', contributor.get("name"))
         loader.add_value('author_url', contributor.get("webUrl"))
@@ -58,7 +65,6 @@ class BookSpider(scrapy.Spider):
         loader.add_value('num_pages', book.get("details").get("numPages"))
         loader.add_value('language', book.get("details").get("language").get("name"))
         loader.add_value('publish_date', book.get("details").get("publicationTime"))
-        loader.add_value('original_publish_year', work.get("details").get("publicationTime"))
         loader.add_value('isbn', book.get("details").get("isbn"))
         loader.add_value('isbn13', book.get("details").get("isbn13"))
         loader.add_value('asin', book.get("details").get("asin"))
@@ -86,8 +92,6 @@ class BookSpider(scrapy.Spider):
         loader.add_css("language", "div[itemprop=inLanguage]::text")
         loader.add_css('publish_date', 'div.row::text')
         loader.add_css('publish_date', 'nobr.greyText::text')
-
-        loader.add_css('original_publish_year', 'nobr.greyText::text')
 
         loader.add_css("genres", 'div.left>a.bookPageGenreLink[href*="/genres/"]::text')
         loader.add_css('series', 'div.infoBoxRowItem>a[href*="/series/"]::text')

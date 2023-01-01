@@ -38,14 +38,6 @@ def extract_legacy_publish_date(maybe_dates):
     maybe_dates = [s for s in maybe_dates if "published" in s.lower()]
     return [safe_parse_date(date) for date in maybe_dates]
 
-
-def extract_legacy_publish_year(s):
-    s = s.lower().strip()
-    match = re.match(".*first published.*(\d{4})", s)
-    if match:
-        return match.group(1)
-
-
 def extract_legacy_ratings(txt):
     """Extract the rating histogram from embedded Javascript code
 
@@ -111,12 +103,6 @@ def convert_epoch_to_timestamp(epoch):
     return time_object.date().strftime(TIME_FORMAT)
 
 
-def extract_year_from_timestamp(epoch):
-    epoch_seconds = epoch / 1000
-    time_object = datetime.datetime.fromtimestamp(epoch_seconds)
-    return time_object.year
-
-
 class LegacyBookItem(scrapy.Item):
     # Scalars
     url = Field()
@@ -132,8 +118,6 @@ class LegacyBookItem(scrapy.Item):
 
     language = Field(input_processor=MapCompose(str.strip))
     publish_date = Field(input_processor=extract_legacy_publish_date)
-
-    original_publish_year = Field(input_processor=MapCompose(extract_legacy_publish_year, int))
 
     isbn = Field(input_processor=MapCompose(str.strip, isbn_filter))
     isbn13 = Field(input_processor=MapCompose(str.strip, isbn13_filter))
@@ -167,8 +151,6 @@ class BookItem(scrapy.Item):
 
     language = Field(input_processor=MapCompose(extract_language))
     publish_date = Field(input_processor=MapCompose(convert_epoch_to_timestamp))
-
-    original_publish_year = Field(input_processor=MapCompose(extract_year_from_timestamp, int))
 
     isbn = Field(input_processor=MapCompose(str.strip, isbn_filter))
     isbn13 = Field(input_processor=MapCompose(str.strip, isbn13_filter))
